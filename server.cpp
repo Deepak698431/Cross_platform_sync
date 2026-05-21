@@ -122,7 +122,7 @@ int main() {
             // ----------------------------------------------------------------------
             auto now = std::chrono::system_clock::now();
             auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-            std::string finalPath = "C:\\Users\\Deepa\\OneDrive\\Pictures\\Synced images\\bridge_img_" + std::to_string(ms) + ".png";
+            std::string finalPath = "C:\\YOUR_TARGET_DIRECTORY_HERE\\bridge_img_" + std::to_string(ms) + ".png";
             // std::string relativePath = "bridge_img_" + std::to_string(ms) + ".png"; 
 
             // char absolutePath[MAX_PATH];
