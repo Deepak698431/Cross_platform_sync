@@ -20,6 +20,7 @@ using namespace Gdiplus;
 #pragma comment(lib, "ole32.lib")
 
 int main() {
+    FreeConsole();
     Gdiplus::GdiplusStartupInput gdiplusStartupInput;
     ULONG_PTR gdiplusToken;
     Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
@@ -122,12 +123,49 @@ int main() {
             // ----------------------------------------------------------------------
             auto now = std::chrono::system_clock::now();
             auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-            std::string finalPath = "C:\\Users\\Deepa\\OneDrive\\Pictures\\Synced images\\bridge_img_" + std::to_string(ms) + ".png";
-            // std::string relativePath = "bridge_img_" + std::to_string(ms) + ".png"; 
+            // std::string finalPath = "C:\\Users\\Deepa\\OneDrive\\Pictures\\Synced images\\bridge_img_" + std::to_string(ms) + ".png";
+            auto now = std::chrono::system_clock::now();
+            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            
+            // 1. Ask Windows for the TRUE Pictures folder path (Handles OneDrive automatically)
+            char picturesPath[MAX_PATH];
+            std::string finalPath = "";
+            
+            if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_MYPICTURES, NULL, 0, picturesPath))) {
+                std::string baseFolder = std::string(picturesPath) + "\\Synced images";
+                
+                // 2. Safely create the directory (does nothing if it already exists)
+                CreateDirectoryA(baseFolder.c_str(), NULL); 
+                
+                // 3. Build the final file name
+                finalPath = baseFolder + "\\bridge_img_" + std::to_string(ms) + ".png";
+            }
 
-            // char absolutePath[MAX_PATH];
-            // GetFullPathNameA(relativePath.c_str(), MAX_PATH, absolutePath, NULL);
-            // std::string finalPath = absolutePath;
+            // 4. Save the file using the dynamic path
+            std::ofstream outfile(finalPath, std::ios::binary);
+            if (outfile.is_open()) {
+                outfile.write(image_data.data(), image_data.size());
+                outfile.close();
+
+                // Convert ANSI path to Wide String (Unicode)
+                int wchars_num = MultiByteToWideChar(CP_UTF8, 0, finalPath.c_str(), -1, NULL, 0);
+                std::vector<wchar_t> wPath(wchars_num);
+                MultiByteToWideChar(CP_UTF8, 0, finalPath.c_str(), -1, &wPath[0], wchars_num);
+
+                // Allocate memory for Unicode DROPFILES
+                SIZE_T dropSize = sizeof(DROPFILES) + (wchars_num + 1) * sizeof(wchar_t);
+                HGLOBAL hDrop = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, dropSize); 
+                if (hDrop) {
+                    DROPFILES* pDrop = (DROPFILES*)GlobalLock(hDrop);
+                    pDrop->pFiles = sizeof(DROPFILES);
+                    pDrop->fWide = TRUE; 
+                    memcpy((char*)pDrop + sizeof(DROPFILES), &wPath[0], wchars_num * sizeof(wchar_t));
+                    GlobalUnlock(hDrop);
+                    SetClipboardData(CF_HDROP, hDrop);
+                }
+            } else {
+                std::cout << "ERROR: Could not save to folder!" << std::endl;
+            }
 
             std::ofstream outfile(finalPath, std::ios::binary);
             if (outfile.is_open()) {
